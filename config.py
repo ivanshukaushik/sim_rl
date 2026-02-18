@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 class Config:
     # ── World ─────────────────────────────────────────────────────────────────
     world_size: float = 100.0        # Width and height of the arena (continuous)
-    num_resource_patches: int = 8    # Number of gaussian food blobs
+    num_resource_patches: int = 12   # More distributed food → less desperation-driven conflict
     patch_peak: float = 8.0          # Max resource density at patch centre
     patch_radius: float = 12.0       # Std-dev of gaussian patch (bigger = gentler gradient)
     resource_regen_rate: float = 0.04 # Fraction of (capacity - current) restored each tick
@@ -20,7 +20,7 @@ class Config:
     # and a substrate for superstitious/religious behaviour
     threat_prob_per_tick: float = 0.002   # Probability a new threat spawns each tick
     threat_radius: float = 6.0            # Spatial radius of damage
-    threat_damage: float = 25.0           # Energy removed from agents inside radius
+    threat_damage: float = 15.0           # Real predators/hazards dangerous but rarely one-shot lethal
     threat_duration: int = 10             # Ticks the threat persists
 
     # ── Population ───────────────────────────────────────────────────────────
@@ -32,24 +32,24 @@ class Config:
     initial_energy: float = 55.0
     max_age: int = 2500               # Ticks before natural death
 
-    vision_radius: float = 14.0       # How far an agent can see
-    max_visible_agents: int = 5       # Max neighbours fed into the brain
+    vision_radius: float = 18.0       # Wider social awareness (real primates scan broadly)
+    max_visible_agents: int = 8       # Track more neighbours; real primates monitor group
     num_signals: int = 8              # Discrete communication channel (tribal marker)
 
-    # Memory – how many unique agents to remember
-    memory_capacity: int = 12
+    # Memory – social brain hypothesis: primates track many relationships
+    memory_capacity: int = 20
 
     # ── Energy economy ────────────────────────────────────────────────────────
-    metabolic_cost: float = 0.4       # Energy drained each tick just to exist
+    metabolic_cost: float = 0.30      # Slightly efficient baseline; real metabolism is adaptive
     move_cost_per_unit: float = 0.15  # Extra cost per unit of distance moved
     max_speed: float = 2.2
 
     eat_amount: float = 3.5           # Max energy extracted from world per eat action
-    share_amount: float = 5.0         # Energy transferred from sharer to receiver
-    attack_steal: float = 8.0         # Energy stolen on successful attack
-    attack_cost: float = 3.0          # Energy cost to the attacker regardless of outcome
+    share_amount: float = 7.0         # Generous sharing; real grooming/food-sharing alliances
+    attack_steal: float = 5.5         # Real fights net less than expected (injury, resistance)
+    attack_cost: float = 5.0          # Aggression risks injury; ~17 ticks of metabolic cost
     mate_cost: float = 18.0           # Energy cost of reproducing
-    mate_energy_threshold: float = 65.0   # Minimum energy to be willing to mate
+    mate_energy_threshold: float = 58.0   # Bonded pairs reproduce at lower individual thresholds
 
     # ── Neural network ────────────────────────────────────────────────────────
     hidden_size: int = 48
@@ -61,7 +61,7 @@ class Config:
     tournament_size: int = 5          # k in k-tournament selection
 
     # ── Simulation ────────────────────────────────────────────────────────────
-    max_ticks: int = 200_000
+    max_ticks: int = 500_000
     metrics_interval: int = 500       # Log metrics every N ticks
     render_interval: int = 200        # Re-draw visualisation every N ticks
     checkpoint_interval: int = 5_000  # Save checkpoint every N ticks

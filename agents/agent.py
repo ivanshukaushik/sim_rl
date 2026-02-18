@@ -293,8 +293,15 @@ class Agent:
         self.total_attacked += stolen
 
     def update_coexistence(self, other_id: int, tick: int) -> None:
-        """Call each tick two agents are in sight of each other."""
-        self.memory.update(other_id, valence_delta=0.0, current_tick=tick)
+        """Call each tick two agents are in sight of each other.
+
+        Peaceful proximity builds mild positive association — the 'mere exposure'
+        effect. In real mammals, simply being near familiar non-threatening
+        conspecifics triggers oxytocin release and reduces cortisol. A small
+        positive delta here allows bonds to form through sustained coexistence
+        without requiring active sharing.
+        """
+        self.memory.update(other_id, valence_delta=0.1, current_tick=tick)
 
     # ── Reproduction ──────────────────────────────────────────────────────────
 
