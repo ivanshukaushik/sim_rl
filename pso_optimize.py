@@ -95,6 +95,9 @@ def pos_to_config(pos: np.ndarray):
     cfg.max_visible_agents = 8
     cfg.num_signals        = 8
     cfg.hidden_size        = 48
+    # Cap population: _visible_neighbours is O(N²), so 400 agents is ~11×
+    # slower than 120. Without a cap some configs balloon and stall workers.
+    cfg.max_population = 160
     # Disable checkpointing and rendering in trial runs
     cfg.checkpoint_interval = 10 ** 9
     cfg.render_interval     = 10 ** 9
@@ -379,7 +382,7 @@ def main() -> None:
                     help="Swarm size (one worker process per particle)")
     ap.add_argument("--iters",       type=int, default=20,
                     help="Number of PSO generations")
-    ap.add_argument("--eval-ticks",  type=int, default=15_000,
+    ap.add_argument("--eval-ticks",  type=int, default=10_000,
                     help="Simulation ticks per fitness evaluation")
     ap.add_argument("--out-dir",     type=str, default="pso_results",
                     help="Directory for logs and best_config.json")
