@@ -1,0 +1,16 @@
+{
+  "resource_regen_rate": 0.02651542325998563,
+  "patch_peak": 10.603545139080769,
+  "num_resource_patches": 16,
+  "threat_damage": 34.6895305296836,
+  "threat_prob_per_tick": 0.002448741007654671,
+  "metabolic_cost": 0.26746736661087006,
+  "eat_amount": 4.583276650410643,
+  "share_amount": 5.375644665868397,
+  "attack_steal": 2.980770973128145,
+  "attack_cost": 5.54432233030304,
+  "mate_cost": 12.616468333489118,
+  "mate_energy_threshold": 65.51049874599651,
+  "vision_radius": 16.075667443735423,
+  "memory_capacity": 26
+}
