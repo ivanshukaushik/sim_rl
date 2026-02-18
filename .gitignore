@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+frames/
+checkpoints/
+metrics/
+*.pkl
+*.png
+*.mp4
+.DS_Store
