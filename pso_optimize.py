@@ -171,36 +171,53 @@ def _evaluate_worker(args):
     # ── Evaluate over the tail (last 40% of snapshots) for stable signal ─────
     tail = history[int(len(history) * 0.6):]
 
-    bonded_pairs = float(np.mean([h.get("bonded_pairs",       0) for h in tail]))
-    mean_bond    = float(np.mean([h.get("mean_bond_score",    0) for h in tail]))
-    max_bond     = float(np.max( [h.get("max_bond_score",     0) for h in tail]))
-    same_val     = float(np.mean([h.get("same_signal_mean_valence", 0) for h in tail]))
-    tribal_bias  = float(np.mean([abs(h.get("tribal_bias",    0)) for h in tail]))
-    ritual_conv  = float(np.mean([h.get("ritual_convergence", 0) for h in tail]))
+    bonded_pairs  = float(np.mean([h.get("bonded_pairs",       0) for h in tail]))
+    mean_bond     = float(np.mean([h.get("mean_bond_score",    0) for h in tail]))
+    max_bond      = float(np.max( [h.get("max_bond_score",     0) for h in tail]))
+    same_val      = float(np.mean([h.get("same_signal_mean_valence", 0) for h in tail]))
+    tribal_bias   = float(np.mean([abs(h.get("tribal_bias",    0)) for h in tail]))
+    ritual_conv   = float(np.mean([h.get("ritual_convergence", 0) for h in tail]))
+    energy_gini   = float(np.mean([h.get("energy_gini",        0) for h in tail]))
+    dominant_frac = float(np.mean([h.get("dominant_fraction",   0) for h in tail]))
 
     # ── Fitness ───────────────────────────────────────────────────────────────
-    # Love terms dominate; proxy metrics (same_val, max_bond) give gradient
-    # even before the first threshold-crossing bond appears.
+    # Balanced across all four emergent behaviours so the optimiser cannot
+    # ignore any category.  Each category can contribute ~40-50 pts max.
+    #
+    #   Love / Bonding  ≈ 50 pts   (25 + 20 + 5)
+    #   Tribalism       ≈ 45 pts   (30 + 15)
+    #   Religion/Ritual ≈ 40 pts   (40)
+    #   Dominance       ≈ 48 pts   (30 + 60×~0.3)
+    #   Survival        ≈ 10 pts   (5×~2)
     fitness = (
-        50.0  * bonded_pairs +    # primary: actual bonded pairs
-        100.0 * mean_bond    +    # bond strength (0–1 × 100)
-        40.0  * max_bond     +    # any pair ever close to bonding
-         8.0  * max(0.0, same_val) +  # reward positive intra-group valence
-         2.0  * tribal_bias  +    # reward social structure
-         1.0  * ritual_conv  +    # reward ritual behaviour
-         3.0  * survival          # keep population alive
+        # ── Love / Bonding ─────────────────────────────────
+        25.0  * bonded_pairs      +    # fraction of pop in bonds (0–1)
+        20.0  * mean_bond         +    # average bond strength (0–1)
+         5.0  * max_bond          +    # strongest bond (0–1)
+        # ── Tribalism ──────────────────────────────────────
+        30.0  * tribal_bias       +    # in-group vs out-group valence
+        15.0  * max(0.0, same_val) +   # positive in-group feeling
+        # ── Religion / Ritual ──────────────────────────────
+        40.0  * ritual_conv       +    # convergence on stress signals (0–1)
+        # ── Dominance / Hierarchy ──────────────────────────
+        30.0  * energy_gini       +    # energy inequality (0–1)
+        60.0  * dominant_frac     +    # fraction with >2× mean energy
+        # ── Survival ───────────────────────────────────────
+         5.0  * survival               # keep population alive
     )
 
     summary = {
-        "particle":     particle_id,
-        "bonded_pairs": round(bonded_pairs, 3),
-        "mean_bond":    round(mean_bond,    5),
-        "max_bond":     round(max_bond,     5),
-        "same_val":     round(same_val,     5),
-        "tribal_bias":  round(tribal_bias,  4),
-        "ritual_conv":  round(ritual_conv,  3),
-        "survival":     round(survival,     3),
-        "fitness":      round(fitness,      4),
+        "particle":      particle_id,
+        "bonded_pairs":  round(bonded_pairs,  3),
+        "mean_bond":     round(mean_bond,     5),
+        "max_bond":      round(max_bond,      5),
+        "same_val":      round(same_val,      5),
+        "tribal_bias":   round(tribal_bias,   4),
+        "ritual_conv":   round(ritual_conv,   3),
+        "energy_gini":   round(energy_gini,   4),
+        "dominant_frac": round(dominant_frac, 4),
+        "survival":      round(survival,      3),
+        "fitness":       round(fitness,       4),
     }
     return float(fitness), summary
 
@@ -382,7 +399,7 @@ def main() -> None:
                     help="Swarm size (one worker process per particle)")
     ap.add_argument("--iters",       type=int, default=20,
                     help="Number of PSO generations")
-    ap.add_argument("--eval-ticks",  type=int, default=10_000,
+    ap.add_argument("--eval-ticks",  type=int, default=50_000,
                     help="Simulation ticks per fitness evaluation")
     ap.add_argument("--out-dir",     type=str, default="pso_results",
                     help="Directory for logs and best_config.json")
