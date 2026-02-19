@@ -105,7 +105,8 @@ class Agent:
     def __init__(self, cfg: "Config", genome: Optional[np.ndarray] = None,
                  x: Optional[float] = None, y: Optional[float] = None,
                  rng: Optional[np.random.Generator] = None,
-                 parent_ids: Optional[tuple] = None):
+                 parent_ids: Optional[tuple] = None,
+                 hidden_size: Optional[int] = None):
 
         self.cfg = cfg
         self.rng = rng or np.random.default_rng()
@@ -127,10 +128,10 @@ class Agent:
         # Social
         self.memory = SocialMemory(cfg.memory_capacity)
 
-        # Neural network
+        # Neural network — hidden_size may be individually evolved (NEAT-like)
         self.brain = Brain(
             genome=genome,
-            hidden_size=cfg.hidden_size,
+            hidden_size=hidden_size if hidden_size is not None else cfg.hidden_size,
             input_size=cfg.input_size(),
             output_size=cfg.output_size(),
             rng=self.rng,
@@ -139,7 +140,8 @@ class Agent:
         # Logging fields (used by metrics)
         self.energy_history: List[float] = []
         self.position_history: List[tuple] = []  # sparse, sampled
-        self.stress_action_log: List[dict] = []   # for superstition detection
+        self.stress_action_log: List[dict] = []   # routine stress → ritual detection
+        self.episodic_catastrophe_log: List[dict] = []  # rare high-arousal events
         self.ticks_survived = 0
         self.offspring_count = 0
         self.total_shared = 0.0
@@ -256,6 +258,22 @@ class Agent:
                 "x": self.x,
                 "y": self.y,
             })
+
+        # ── Episodic catastrophe memory (Whitehouse: high-arousal rare events
+        #    create lasting episodic traces distinct from routine stress) ────
+        catastrophe_exposure = world.catastrophe_exposure_at(self.x, self.y)
+        if catastrophe_exposure > 0:
+            self.episodic_catastrophe_log.append({
+                "signal":   self.signal,
+                "stress":   self.stress,
+                "survived": True,   # agent is alive to log it
+                "x": self.x,
+                "y": self.y,
+            })
+            # Extra-strong Hebbian trace during catastrophe (episodic memory)
+            self.brain.plastic_W2 = np.clip(
+                self.brain.plastic_W2 * (1 + catastrophe_exposure * 0.5), -1.5, 1.5
+            )
 
         # ── Mate cooldown ─────────────────────────────────────────────────
         if self.mate_cooldown > 0:

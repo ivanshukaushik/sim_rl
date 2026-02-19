@@ -78,7 +78,9 @@ class MetricsTracker:
         row.update(self._bonding(agents))
         row.update(self._tribalism(agents))
         row.update(self._superstition(agents))
+        row.update(self._catastrophic_ritual(agents))
         row.update(self._dominance(agents))
+        row.update(self._architecture_stats(agents))
         row.update(ga.population_stats(agents))
 
         self.history.append(row)
@@ -228,6 +230,66 @@ class MetricsTracker:
             "max_possible_entropy": max_entropy,
         }
 
+    # ── Catastrophic ritual (Whitehouse episodic mode) ────────────────────────
+
+    def _catastrophic_ritual(self, agents: List["Agent"]) -> dict:
+        """
+        Measure signal convergence specifically during catastrophic events.
+
+        Whitehouse's Modes of Religiosity theory: rare, high-arousal events
+        create episodic memories that bind small groups together more tightly
+        than routine ritual.  We track which signals agents emit *during*
+        catastrophes and whether they converge on one (ritual) signal.
+
+        episodic_convergence: fraction of catastrophic-event signals that
+          match the modal signal.  High → agents consistently do the same
+          thing during disasters (proto-ritual).
+        episodic_groups: number of distinct signals used across agents —
+          low means convergence on one shared response.
+        """
+        cat_signals = []
+        for agent in agents:
+            for entry in agent.episodic_catastrophe_log[-20:]:
+                cat_signals.append(entry["signal"])
+            agent.episodic_catastrophe_log = agent.episodic_catastrophe_log[-20:]
+
+        if not cat_signals:
+            return {
+                "episodic_ritual_convergence": 0.0,
+                "episodic_ritual_signal": -1,
+                "episodic_event_count": 0,
+            }
+
+        counts = np.zeros(self.cfg.num_signals)
+        for s in cat_signals:
+            counts[s] += 1
+
+        modal_signal = int(np.argmax(counts))
+        convergence = float(counts[modal_signal] / len(cat_signals))
+        return {
+            "episodic_ritual_convergence": convergence,
+            "episodic_ritual_signal": modal_signal,
+            "episodic_event_count": len(cat_signals),
+        }
+
+    # ── Architecture diversity (NEAT-like) ────────────────────────────────────
+
+    def _architecture_stats(self, agents: List["Agent"]) -> dict:
+        """Track the distribution of hidden_sizes across the population.
+
+        Under NEAT-like evolution, agents with larger brains may outcompete
+        those with smaller ones when tasks are cognitively demanding, and
+        vice versa.  Watching this distribution shows whether the population
+        is evolving toward more or less complex agents over time.
+        """
+        if not agents:
+            return {"mean_hidden_size": 0.0, "hidden_size_std": 0.0}
+        sizes = [a.brain.hs for a in agents]
+        return {
+            "mean_hidden_size": float(np.mean(sizes)),
+            "hidden_size_std": float(np.std(sizes)),
+        }
+
     # ── Dominance hierarchy ───────────────────────────────────────────────────
 
     def _dominance(self, agents: List["Agent"]) -> dict:
@@ -267,14 +329,15 @@ class MetricsTracker:
             f"  [TRIBE]     tribal bias={row.get('tribal_bias',0):>+.3f}  "
             f"num_tribes={row.get('num_tribes',0):>2d}  "
             f"dominant={row.get('dominant_tribe_frac',0):.0%}\n"
-            f"  [RITUAL]    ritual_signal={row.get('ritual_signal',-1):>2d}  "
-            f"convergence={row.get('ritual_convergence',0):.0%}  "
-            f"entropy={row.get('stress_signal_entropy',0):.2f}"
-            f"/{row.get('max_possible_entropy',3):.2f}\n"
+            f"  [RITUAL]    routine convergence={row.get('ritual_convergence',0):.0%}  "
+            f"episodic convergence={row.get('episodic_ritual_convergence',0):.0%}"
+            f"  (n={row.get('episodic_event_count',0)})\n"
             f"  [DOMINANCE] energy_gini={row.get('energy_gini',0):.3f}  "
             f"dominant_frac={row.get('dominant_fraction',0):.0%}\n"
             f"  [GENETICS]  generation={row.get('generation',0):>6d}  "
-            f"diversity={row.get('genome_diversity',0):.4f}"
+            f"diversity={row.get('genome_diversity',0):.4f}  "
+            f"hidden_size={row.get('mean_hidden_size',0):.1f}"
+            f"±{row.get('hidden_size_std',0):.1f}"
         )
 
     def save(self, filename: str = "metrics/history.json") -> None:

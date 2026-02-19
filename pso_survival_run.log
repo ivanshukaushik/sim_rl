@@ -14,13 +14,3 @@
 ═════════════════════════════════════════════════════════════════
   Generation 1/20  │  w=0.900  │  best so far: -inf
 ═════════════════════════════════════════════════════════════════
-Traceback (most recent call last):
-  File "/home/user/sim_rl/pso_optimize.py", line 432, in <module>
-    main()
-  File "/home/user/sim_rl/pso_optimize.py", line 425, in main
-    result = pso.run(pool)
-             ^^^^^^^^^^^^^
-  File "/home/user/sim_rl/pso_optimize.py", line 301, in run
-    f"  max_bond={summary['max_bond']:.4f}"
-                  ~~~~~~~^^^^^^^^^^^^
-KeyError: 'max_bond'

@@ -110,13 +110,13 @@ class Simulation:
                 self._reproduce(agent, nearest)
 
     def _reproduce(self, parent_a: Agent, parent_b: Agent) -> None:
-        """Create an offspring near the parents."""
+        """Create an offspring near the parents with cultural inheritance."""
         if len(self.agents) >= self.cfg.max_population:
             return
 
-        child_genome = self.ga.make_child_genome(parent_a, parent_b)
-        cx = (parent_a.x + parent_b.x) / 2 + self.rng.uniform(-2, 2)
-        cy = (parent_a.y + parent_b.y) / 2 + self.rng.uniform(-2, 2)
+        child_genome, child_hs = self.ga.make_child_genome(parent_a, parent_b)
+        cx = (parent_a.x + parent_b.x) / 2 + self.rng.uniform(-5, 5)
+        cy = (parent_a.y + parent_b.y) / 2 + self.rng.uniform(-5, 5)
         cx, cy = self.world.wrap(cx, cy)
 
         child = Agent(
@@ -125,7 +125,16 @@ class Simulation:
             x=cx, y=cy,
             rng=np.random.default_rng(self.rng.integers(1 << 31)),
             parent_ids=(parent_a.id, parent_b.id),
+            hidden_size=child_hs,
         )
+
+        # Cultural inheritance: child starts with a faint imprint of what
+        # parents learned during their lifetime (partial Hebbian transfer).
+        # Only applied when both parents share the same architecture.
+        α = self.cfg.cultural_inheritance
+        if α > 0 and parent_a.brain.hs == parent_b.brain.hs == child_hs:
+            parent_avg = (parent_a.brain.plastic_W2 + parent_b.brain.plastic_W2) / 2
+            child.brain.plastic_W2 = parent_avg * α
 
         parent_a.spend_mate_energy()
         parent_b.spend_mate_energy()
@@ -136,13 +145,32 @@ class Simulation:
         self.ga.generation += 1
 
     def _maintain_population(self) -> None:
-        """If population falls below threshold, spawn replacement agents."""
+        """Spawn replacements near existing agents (regional gene pools).
+
+        Spawning near a random living agent — rather than at a globally
+        random position — means successful local behaviours propagate
+        within a region instead of mixing instantly across the world.
+        This is necessary for distinct tribal cultures to persist.
+        """
         target = self.cfg.initial_population
         while len(self.agents) < target:
-            genome = self.ga.replacement_genome(self.agents)
-            x = self.rng.uniform(0, self.cfg.world_size)
-            y = self.rng.uniform(0, self.cfg.world_size)
+            # Pick a random anchor agent; spawn the replacement nearby
+            if self.agents:
+                anchor = self.agents[int(self.rng.integers(len(self.agents)))]
+                x = anchor.x + self.rng.uniform(-self.cfg.spawn_radius,
+                                                 self.cfg.spawn_radius)
+                y = anchor.y + self.rng.uniform(-self.cfg.spawn_radius,
+                                                 self.cfg.spawn_radius)
+                x, y = self.world.wrap(x, y)
+                genome, hs = self.ga.replacement_genome(self.agents,
+                                                        near_x=x, near_y=y)
+            else:
+                x = self.rng.uniform(0, self.cfg.world_size)
+                y = self.rng.uniform(0, self.cfg.world_size)
+                genome, hs = self.ga.replacement_genome(self.agents)
+
             a = Agent(self.cfg, genome=genome, x=x, y=y,
+                      hidden_size=hs,
                       rng=np.random.default_rng(self.rng.integers(1 << 31)))
             self.agents.append(a)
 
@@ -188,6 +216,18 @@ class Simulation:
                         agent.energy -= threat.damage * 0.5
                         if agent.energy <= 0:
                             agent.alive = False
+
+        # 4b. Apply catastrophe damage — continuous each tick while inside zone
+        for cat in self.world.catastrophes:
+            for agent in self.agents:
+                if not agent.alive:
+                    continue
+                d = self.world.toroidal_dist(agent.x, agent.y, cat.x, cat.y)
+                if d <= cat.radius:
+                    # Spread damage over duration so agents can flee
+                    agent.energy -= cat.damage / cat.ticks_remaining * 0.3
+                    if agent.energy <= 0:
+                        agent.alive = False
 
         # 5. Cull dead agents, update elite
         self.ga.update_elite(self.agents)

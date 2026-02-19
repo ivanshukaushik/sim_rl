@@ -51,8 +51,13 @@ class World:
         self._init_resources(grid)
         self.resources = self.resource_capacity.copy() * 0.6   # start at 60 %
 
-        # ── Active threats ───────────────────────────────────────────────────
+        # ── Active threats (routine) ─────────────────────────────────────────
         self.threats: List[Threat] = []
+
+        # ── Catastrophic events (rare, large, episodic) ───────────────────────
+        # Separate from routine threats so agents can build distinct episodic
+        # memories of rare disasters — the substrate for Whitehouse-style ritual.
+        self.catastrophes: List[Threat] = []
 
         # ── Tick counter ─────────────────────────────────────────────────────
         self.tick = 0
@@ -99,7 +104,7 @@ class World:
                 still_active.append(t)
         self.threats = still_active
 
-        # Possibly spawn a new threat
+        # Possibly spawn a new routine threat
         new_threats: List[Threat] = []
         if self.rng.random() < self.cfg.threat_prob_per_tick:
             t = Threat(
@@ -111,6 +116,20 @@ class World:
             )
             self.threats.append(t)
             new_threats.append(t)
+
+        # Possibly spawn a catastrophic event (rare, large, near-lethal)
+        # These create distinct episodic memories — the seed of ritual/religion
+        for cat in list(self.catastrophes):
+            cat.ticks_remaining -= 1
+        self.catastrophes = [c for c in self.catastrophes if c.ticks_remaining > 0]
+        if self.rng.random() < self.cfg.catastrophe_prob_per_tick:
+            self.catastrophes.append(Threat(
+                x=self.rng.uniform(0, self.size),
+                y=self.rng.uniform(0, self.size),
+                radius=self.cfg.catastrophe_radius,
+                damage=self.cfg.catastrophe_damage,
+                ticks_remaining=self.cfg.catastrophe_duration,
+            ))
 
         return new_threats
 
@@ -160,11 +179,19 @@ class World:
         return float(x % self.size), float(y % self.size)
 
     def threats_at(self, x: float, y: float) -> float:
-        """Total threat damage the position is currently exposed to."""
+        """Total routine threat damage at position."""
         total = 0.0
         for t in self.threats:
             if self.toroidal_dist(x, y, t.x, t.y) <= t.radius:
                 total += t.damage
+        return total
+
+    def catastrophe_exposure_at(self, x: float, y: float) -> float:
+        """Total catastrophic event damage at position (0 if none active)."""
+        total = 0.0
+        for c in self.catastrophes:
+            if self.toroidal_dist(x, y, c.x, c.y) <= c.radius:
+                total += c.damage
         return total
 
     def local_resource_density(self, x: float, y: float,

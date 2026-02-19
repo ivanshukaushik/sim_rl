@@ -160,6 +160,30 @@ class Brain:
             self._hebb_raw,
         ])
 
+    def resize_genome(self, new_hs: int) -> np.ndarray:
+        """Return this genome resized to new_hs hidden neurons.
+
+        Used by NEAT-like crossover when two parents have different hidden
+        sizes.  Weights for existing neurons are preserved; new neurons are
+        initialised to zero (silent — evolution can activate them later).
+        Excess neurons are truncated.
+        """
+        def _fit(arr: np.ndarray, shape: tuple) -> np.ndarray:
+            out = np.zeros(shape, dtype=arr.dtype)
+            slices = tuple(slice(0, min(s, n)) for s, n in zip(arr.shape, shape))
+            out[slices] = arr[slices]
+            return out
+
+        return np.concatenate([
+            _fit(self.W1,       (self.ins,  new_hs)).flatten(),
+            _fit(self.b1,       (new_hs,)),
+            _fit(self.W2,       (new_hs,    new_hs)).flatten(),
+            _fit(self.b2,       (new_hs,)),
+            _fit(self.W3,       (new_hs,    self.outs)).flatten(),
+            self.b3.copy(),                              # output size fixed
+            _fit(self._hebb_raw,(new_hs,)),
+        ])
+
     # ── Forward pass ──────────────────────────────────────────────────────────
 
     def forward(self, obs: np.ndarray) -> np.ndarray:

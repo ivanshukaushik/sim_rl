@@ -91,13 +91,15 @@ def pos_to_config(pos: np.ndarray):
         if is_int:
             val = int(round(val))
         setattr(cfg, name, val)
-    # Keep brain architecture fixed across all particles
+    # Keep brain architecture fixed across all particles so evals are comparable
     cfg.max_visible_agents = 8
     cfg.num_signals        = 8
     cfg.hidden_size        = 48
-    # Cap population: _visible_neighbours is O(N²), so 400 agents is ~11×
-    # slower than 120. Without a cap some configs balloon and stall workers.
-    cfg.max_population = 160
+    # Population cap: higher gives richer emergence but slower evals.
+    # 300 is ~2× slower than 160 but allows tribal clustering and spatial
+    # inheritance to operate at a meaningful scale.
+    cfg.max_population     = 300
+    cfg.initial_population = 120
     # Disable checkpointing and rendering in trial runs
     cfg.checkpoint_interval = 10 ** 9
     cfg.render_interval     = 10 ** 9
@@ -188,12 +190,14 @@ def _evaluate_worker(args):
     )
 
     # ── Observed behaviours — logged only, not part of fitness ───────────────
-    bonded_pairs  = float(np.mean([h.get("bonded_pairs",            0) for h in tail]))
-    mean_bond     = float(np.mean([h.get("mean_bond_score",         0) for h in tail]))
-    tribal_bias   = float(np.mean([abs(h.get("tribal_bias",         0)) for h in tail]))
-    ritual_conv   = float(np.mean([h.get("ritual_convergence",      0) for h in tail]))
-    energy_gini   = float(np.mean([h.get("energy_gini",            0) for h in tail]))
-    dominant_frac = float(np.mean([h.get("dominant_fraction",       0) for h in tail]))
+    bonded_pairs   = float(np.mean([h.get("bonded_pairs",               0) for h in tail]))
+    mean_bond      = float(np.mean([h.get("mean_bond_score",            0) for h in tail]))
+    tribal_bias    = float(np.mean([abs(h.get("tribal_bias",            0)) for h in tail]))
+    ritual_conv    = float(np.mean([h.get("ritual_convergence",         0) for h in tail]))
+    episodic_conv  = float(np.mean([h.get("episodic_ritual_convergence",0) for h in tail]))
+    energy_gini    = float(np.mean([h.get("energy_gini",               0) for h in tail]))
+    dominant_frac  = float(np.mean([h.get("dominant_fraction",          0) for h in tail]))
+    mean_hs        = float(np.mean([h.get("mean_hidden_size",          48) for h in tail]))
 
     summary = {
         "particle":      particle_id,
@@ -208,8 +212,10 @@ def _evaluate_worker(args):
         "mean_bond":     round(mean_bond,     5),
         "tribal_bias":   round(tribal_bias,   4),
         "ritual_conv":   round(ritual_conv,   3),
+        "episodic_conv": round(episodic_conv, 3),
         "energy_gini":   round(energy_gini,   4),
         "dominant_frac": round(dominant_frac, 4),
+        "mean_hs":       round(mean_hs,       1),
     }
     return float(fitness), summary
 
@@ -301,9 +307,11 @@ class PSO:
                             f"  age={summary['mean_age']:.0f}"
                             f"  div={summary['diversity']:.3f}"
                             f"  gens={summary['generations']}"
+                            f"  hs={summary['mean_hs']:.0f}"
                             f"  [bonds={summary['bonded_pairs']:.2f}"
                             f"  tribe={summary['tribal_bias']:+.3f}"
                             f"  ritual={summary['ritual_conv']:.2f}"
+                            f"  epic={summary['episodic_conv']:.2f}"
                             f"  gini={summary['energy_gini']:.2f}]")
                 print(tag)
 

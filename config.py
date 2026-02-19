@@ -24,8 +24,8 @@ class Config:
     threat_duration: int = 10             # Ticks the threat persists
 
     # ── Population ───────────────────────────────────────────────────────────
-    initial_population: int = 120
-    max_population: int = 400
+    initial_population: int = 150
+    max_population: int = 600
 
     # ── Agent biology ─────────────────────────────────────────────────────────
     max_energy: float = 100.0
@@ -51,8 +51,31 @@ class Config:
     mate_cost: float = 13.4798           # Energy cost of reproducing
     mate_energy_threshold: float = 61.2207   # Bonded pairs reproduce at lower individual thresholds
 
+    # ── Catastrophic events (rare, large-scale — substrate for episodic ritual)
+    catastrophe_prob_per_tick: float = 0.00005  # ~1 per 20k ticks
+    catastrophe_radius: float = 35.0            # covers ~35% of world width
+    catastrophe_damage: float = 75.0            # near-lethal; forces strong memory trace
+    catastrophe_duration: int = 50              # lingers — agents must flee or die
+
+    # ── Spatial / regional ────────────────────────────────────────────────────
+    # Replacement agents born near existing neighbours, not globally random.
+    # This creates regional gene pools and local "cultures".
+    spawn_radius: float = 20.0
+
+    # ── Cultural inheritance ───────────────────────────────────────────────────
+    # Fraction of parent Hebbian fast-weights passed to offspring at birth.
+    # Models cultural transmission: children begin life pre-primed by what
+    # their parents learned, but only partially (fast weights are mostly reset).
+    cultural_inheritance: float = 0.1
+
+    # ── NEAT-like architecture evolution ──────────────────────────────────────
+    # Hidden-layer size is heritable and mutable; populations evolve toward
+    # more or less cognitively complex agents under selection pressure.
+    hidden_size_min: int = 16
+    hidden_size_max: int = 96
+
     # ── Neural network ────────────────────────────────────────────────────────
-    hidden_size: int = 48
+    hidden_size: int = 48   # starting default; individual agents can diverge
 
     # ── Evolution ─────────────────────────────────────────────────────────────
     mutation_rate: float = 0.025      # Fraction of genome entries mutated
