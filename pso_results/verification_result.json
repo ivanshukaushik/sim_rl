@@ -1,0 +1,15 @@
+{
+  "description": "10k-tick headless verification of PSO best config (seed=42, max_pop=160)",
+  "config_source": "pso_results/best_config.json",
+  "eval_ticks": 10000,
+  "seed": 42,
+  "fitness": 111.9267,
+  "bonded_pairs": 0.875,
+  "mean_bond": 0.23693,
+  "max_bond": 0.989,
+  "same_val": 0.08644,
+  "tribal_bias": 0.0047,
+  "ritual_conv": 0.223,
+  "survival": 1.333,
+  "notes": "bonded_pairs=0.875 confirms consistent love-bond emergence under optimized parameters"
+}
