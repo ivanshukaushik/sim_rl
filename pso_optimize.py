@@ -297,10 +297,14 @@ class PSO:
                 elif summary.get("extinction"):
                     tag += "  [EXTINCT]"
                 else:
-                    tag += (f"  bonds={summary['bonded_pairs']:.2f}"
-                            f"  max_bond={summary['max_bond']:.4f}"
-                            f"  val={summary['same_val']:+.4f}"
-                            f"  surv={summary['survival']:.2f}")
+                    tag += (f"  surv={summary['survival']:.2f}"
+                            f"  age={summary['mean_age']:.0f}"
+                            f"  div={summary['diversity']:.3f}"
+                            f"  gens={summary['generations']}"
+                            f"  [bonds={summary['bonded_pairs']:.2f}"
+                            f"  tribe={summary['tribal_bias']:+.3f}"
+                            f"  ritual={summary['ritual_conv']:.2f}"
+                            f"  gini={summary['energy_gini']:.2f}]")
                 print(tag)
 
                 if fit > self.pbest_fit[i]:
