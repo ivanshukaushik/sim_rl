@@ -1,0 +1,16 @@
+=================================================================
+  PSO Parameter Optimiser — Human Emotion Evolution Sim
+=================================================================
+  Particles   : 16
+  Generations : 20
+  Eval ticks  : 10,000 per trial
+  Dimensions  : 14  (resource_regen_rate, patch_peak, num_resource_patches, threat_damage, threat_prob_per_tick, metabolic_cost, eat_amount, share_amount, attack_steal, attack_cost, mate_cost, mate_energy_threshold, vision_radius, memory_capacity)
+  CPUs        : 16
+  Output dir  : pso_results_survival/
+  Total evals : 320
+  Est. time   : ~56 min  (varies with hardware)
+=================================================================
+
+═════════════════════════════════════════════════════════════════
+  Generation 1/20  │  w=0.900  │  best so far: -inf
+═════════════════════════════════════════════════════════════════
